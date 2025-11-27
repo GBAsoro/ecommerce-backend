@@ -56,8 +56,12 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ['card', 'paypal', 'cash'],
+      enum: ['card', 'paypal', 'cash', 'paystack'],
       default: 'card',
+    },
+    paystackReference: {
+      type: String,
+      index: true,
     },
     paymentResult: {
       id: String,
