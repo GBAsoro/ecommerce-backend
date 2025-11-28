@@ -1,7 +1,7 @@
-const User = require('../models/User');
-const AppError = require('../utils/AppError');
-const asyncHandler = require('../utils/asyncHandler');
-const jwt = require('jsonwebtoken');
+const User = require("../models/User");
+const AppError = require("../utils/AppError");
+const asyncHandler = require("../utils/asyncHandler");
+const jwt = require("jsonwebtoken");
 
 /**
  * Send token response with cookie
@@ -17,8 +17,8 @@ const sendTokenResponse = (user, statusCode, res) => {
       Date.now() + (process.env.COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV === "production", // HTTPS only in production
+    sameSite: "strict",
   };
 
   // Save refresh token to database
@@ -27,9 +27,9 @@ const sendTokenResponse = (user, statusCode, res) => {
 
   res
     .status(statusCode)
-    .cookie('token', accessToken, cookieOptions)
+    .cookie("token", accessToken, cookieOptions)
     .json({
-      status: 'success',
+      status: "success",
       data: {
         user: {
           id: user._id,
@@ -50,12 +50,12 @@ const sendTokenResponse = (user, statusCode, res) => {
  * @access  Public
  */
 exports.register = asyncHandler(async (req, res, next) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, role } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return next(new AppError('Email already registered', 400));
+    return next(new AppError("Email already registered", 400));
   }
 
   // Create user
@@ -78,22 +78,22 @@ exports.login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
   // Find user and include password field
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
-    return next(new AppError('Invalid credentials', 401));
+    return next(new AppError("Invalid credentials", 401));
   }
 
   // Check if user is active
   if (!user.isActive) {
-    return next(new AppError('Account is deactivated', 401));
+    return next(new AppError("Account is deactivated", 401));
   }
 
   // Check password
   const isPasswordCorrect = await user.comparePassword(password);
 
   if (!isPasswordCorrect) {
-    return next(new AppError('Invalid credentials', 401));
+    return next(new AppError("Invalid credentials", 401));
   }
 
   sendTokenResponse(user, 200, res);
@@ -109,14 +109,14 @@ exports.logout = asyncHandler(async (req, res, next) => {
   await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
 
   // Clear cookie
-  res.cookie('token', 'none', {
+  res.cookie("token", "none", {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
   });
 
   res.status(200).json({
-    status: 'success',
-    message: 'Logged out successfully',
+    status: "success",
+    message: "Logged out successfully",
   });
 });
 
@@ -129,7 +129,7 @@ exports.refreshToken = asyncHandler(async (req, res, next) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return next(new AppError('Refresh token is required', 400));
+    return next(new AppError("Refresh token is required", 400));
   }
 
   try {
@@ -137,23 +137,23 @@ exports.refreshToken = asyncHandler(async (req, res, next) => {
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
     // Find user and check if refresh token matches
-    const user = await User.findById(decoded.id).select('+refreshToken');
+    const user = await User.findById(decoded.id).select("+refreshToken");
 
     if (!user || user.refreshToken !== refreshToken) {
-      return next(new AppError('Invalid refresh token', 401));
+      return next(new AppError("Invalid refresh token", 401));
     }
 
     // Generate new access token
     const accessToken = user.generateAccessToken();
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         accessToken,
       },
     });
   } catch (error) {
-    return next(new AppError('Invalid or expired refresh token', 401));
+    return next(new AppError("Invalid or expired refresh token", 401));
   }
 });
 
@@ -166,7 +166,7 @@ exports.getMe = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user._id);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
       user,
     },
@@ -184,7 +184,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    return next(new AppError('No user found with that email', 404));
+    return next(new AppError("No user found with that email", 404));
   }
 
   // Generate reset token
@@ -194,8 +194,8 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   // In production, send email with reset link
   // For now, just return the token (REMOVE IN PRODUCTION)
   res.status(200).json({
-    status: 'success',
-    message: 'Password reset token generated',
+    status: "success",
+    message: "Password reset token generated",
     resetToken, // REMOVE THIS IN PRODUCTION - send via email instead
   });
 });
@@ -218,10 +218,10 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
       _id: decoded.id,
       passwordResetToken: token,
       passwordResetExpires: { $gt: Date.now() },
-    }).select('+passwordResetToken +passwordResetExpires');
+    }).select("+passwordResetToken +passwordResetExpires");
 
     if (!user) {
-      return next(new AppError('Invalid or expired reset token', 400));
+      return next(new AppError("Invalid or expired reset token", 400));
     }
 
     // Set new password
@@ -232,6 +232,6 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 
     sendTokenResponse(user, 200, res);
   } catch (error) {
-    return next(new AppError('Invalid or expired reset token', 400));
+    return next(new AppError("Invalid or expired reset token", 400));
   }
 });
